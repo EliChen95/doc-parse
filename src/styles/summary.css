@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.summary-title {
+  @apply text-2xl font-bold text-gray-800 mb-4;
+}
+
+.summary-subtitle {
+  @apply text-xl font-semibold text-gray-700 mb-3;
+}
+
+.summary-paragraph {
+  @apply text-base text-gray-600 mb-4 leading-relaxed;
+}
+
+.summary-list {
+  @apply list-disc pl-6 mb-4 text-gray-600;
+}
+
+.summary-list-ordered {
+  @apply list-decimal pl-6 mb-4 text-gray-600;
+}
+
+.summary-list-item {
+  @apply mb-2;
+}
+
+.summary-table {
+  @apply w-full border-collapse mb-4 text-sm;
+}
+
+.summary-table th,
+.summary-table td {
+  @apply border border-gray-300 px-4 py-2 text-gray-600;
+}
+
+.summary-table th {
+  @apply bg-gray-100 font-semibold text-gray-700;
+}
+
+.summary-quote {
+  @apply border-l-4 border-gray-300 pl-4 mb-4 text-gray-500 italic;
+}
