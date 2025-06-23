@@ -7,7 +7,7 @@
 }
 
 .summary-subtitle {
-  @apply text-xl font-semibold text-gray-700 mb-3;
+  @apply text-xl font-semibold text-gray-700 my-3;
 }
 
 .summary-paragraph {

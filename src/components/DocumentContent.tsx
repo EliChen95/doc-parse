@@ -1,60 +1,75 @@
-import { Card } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { renderAsync } from 'docx-preview';
+import { useParams } from 'react-router-dom';
 import { useDocumentStore } from '../store/documentStore';
 
 const DocumentContent: React.FC = () => {
-  const { uploadedDoc } = useDocumentStore();
+  const { id } = useParams<{ id: string }>(); // 获取任务 ID
+  const { getDocument } = useDocumentStore();
+  const document = id ? getDocument(id) : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (uploadedDoc && containerRef.current) {
-      console.log('Uploaded file:', uploadedDoc);
-      const file = uploadedDoc.file;
+    if (document) {
+      console.log('Selected document:', document);
+      const file = document.file;
       const isDocx = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      
-      if (!isDocx) {
-        setError('仅支持 .docx 格式的文档！.doc 文件暂不支持。');
+      const isPdf = file.type === 'application/pdf';
+
+      if (!isDocx && !isPdf) {
+        setError('仅支持 .docx 或 .pdf 格式的文档！');
         return;
       }
 
-      file.arrayBuffer().then(arrayBuffer => {
-        console.log('ArrayBuffer size:', arrayBuffer.byteLength);
-        renderAsync(arrayBuffer, containerRef.current!)
-          .then(() => {
-            console.log('Document rendered successfully');
-            setError(null);
-          })
-          .catch(err => {
-            console.error('Render error:', err);
-            setError('无法解析文档，请确保上传有效的 .docx 文件');
-          });
-      }).catch(err => {
-        console.error('File read error:', err);
-        setError('无法读取文件，请重试');
-      });
+      if (isDocx) {
+        file.arrayBuffer().then(arrayBuffer => {
+          renderAsync(arrayBuffer, containerRef.current!)
+            .then(() => setError(null))
+            .catch(err => {
+              console.error('Docx render error:', err);
+              setError('无法解析 .docx 文档，请确保上传有效的文件');
+            });
+        }).catch(err => {
+          console.error('Docx file read error:', err);
+          setError('无法读取文件，请重试');
+        });
+      } else if (isPdf) {
+        const url = URL.createObjectURL(file);
+        console.log('PDF URL:', url);
+        setPdfUrl(url);
+        setError(null);
+        return () => URL.revokeObjectURL(url);
+      }
     }
-  }, [uploadedDoc]);
+  }, [document]);
 
   return (
-    <Card
-      title="文档预览"
-      className="h-full"
-    >
-      {uploadedDoc ? (
+    <div className="w-full h-full">
+      {document ? (
         error ? (
           <p className="text-red-500">{error}</p>
+        ) : document.file.type === 'application/pdf' ? (
+          <div className="w-full h-full overflow-y-auto">
+            {pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                title="PDF Preview"
+                className="w-full h-full border-none"
+                style={{ minHeight: 'calc(100vh - 200px)' }}
+              />
+            ) : (
+              <p>正在加载 PDF...</p>
+            )}
+          </div>
         ) : (
-          <div
-            ref={containerRef}
-            className="w-full h-full border border-gray-200 p-4"
-          />
+          <div ref={containerRef} className="w-full h-full border border-gray-200 p-4" />
         )
       ) : (
         <p>暂无上传的文档</p>
       )}
-    </Card>
+    </div>
   );
 };
 
