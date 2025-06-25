@@ -1,10 +1,8 @@
 import { Upload, Button, message } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { UploadChangeParam, UploadFile, UploadProps } from "antd/lib/upload";
-import { useDocumentStore } from "../store/documentStore";
 import { useTaskStore } from "../store/taskStore";
-import { useAnalysisStore } from "../store/analysisStore";
-import axios from "axios";
+import { uploadDocument } from "../api";
 
 interface UploadDocumentProps {
   isLoggedIn: boolean;
@@ -15,9 +13,7 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
   isLoggedIn,
   onUploadAttempt,
 }) => {
-  const { setDocument } = useDocumentStore();
-  const { addTask, updateProgress } = useTaskStore();
-  const { setAnalysisResult } = useAnalysisStore();
+  const { addTask, updateStatus } = useTaskStore();
 
   const customRequest: UploadProps["customRequest"] = async ({
     file,
@@ -30,8 +26,7 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
     }
 
     const taskId = Math.random().toString(36).substring(7);
-    addTask(taskId, (file as File).name);
-    setDocument(taskId, (file as File).name, file as File);
+    addTask(parseInt(taskId, 36), (file as File).name);
 
     try {
       // const formData = new FormData();
@@ -55,13 +50,12 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       //   }
       // }, 500);
 
-      const mockResponse = await axios.get("/res.json");
-      setAnalysisResult(taskId, mockResponse.data);
-      updateProgress(taskId, 100);
+      await uploadDocument(file as File);
       message.success(`${(file as File).name} 上传和分析完成`);
       onSuccess?.({}, file);
     } catch (error) {
       console.error("Upload or analysis error:", error);
+      updateStatus(parseInt(taskId, 36), "3", "3");
       message.error(`${(file as File).name} 上传或分析失败`);
       onError?.(error as Error);
     }
@@ -69,7 +63,7 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
 
   const props: UploadProps = {
     name: "file",
-    accept: ".docx,.pdf",
+    accept: ".pdf",
     showUploadList: false,
     customRequest,
     beforeUpload: (file: UploadFile) => {
@@ -79,12 +73,9 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
         return Upload.LIST_IGNORE;
       }
 
-      const isDocxOrPdf =
-        file.type ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        file.type === "application/pdf";
-      if (!isDocxOrPdf) {
-        message.error("只能上传 .docx 或 .pdf 格式的文档！");
+      const isPdf = file.type === "application/pdf";
+      if (!isPdf) {
+        message.error("只能上传 .pdf 格式的文档！");
         return false;
       }
 
@@ -107,18 +98,28 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       <Upload {...props}>
         <div className="text-center">
           <div className="flex gap-[20px] items-center justify-center mb-[22px]">
-            <img className="w-[64px]" src="/images/doc.png" />
+            {/* <img className="w-[64px]" src="/images/doc.png" /> */}
             <img className="w-[64px]" src="/images/pdf.png" />
           </div>
           <Button
             className="text-[16px] text-[#9091A8] bg-transparent border-none hover:!bg-transparent gap-0 shadow-none group"
             disabled={!isLoggedIn}
           >
-            点击或将<span className="text-black group-hover:text-[#4096ff] font-bold">文件</span>拖拽到此处上传
+            点击或将
+            <span className="text-black group-hover:text-[#4096ff] font-bold">
+              文件
+            </span>
+            拖拽到此处上传
           </Button>
-          <p className="mt-[12px] text-[#C9CAD9] text-[12px]">文档格式：支持pdf（含扫描件）/word</p>
-          <p className="mt-[6px] text-[#C9CAD9] text-[12px]">文档大小：文件最大支持100M</p>
-          <p className="mt-[6px] text-[#C9CAD9] text-[12px]"> 文档页数：pdf/word最多支持100页</p>
+          <p className="mt-[12px] text-[#C9CAD9] text-[12px]">
+            文档格式：支持 PDF（含扫描件）
+          </p>
+          <p className="mt-[6px] text-[#C9CAD9] text-[12px]">
+            文档大小：文件最大支持 10MB
+          </p>
+          <p className="mt-[6px] text-[#C9CAD9] text-[12px]">
+            文档页数：PDF 最多支持 100 页
+          </p>
         </div>
       </Upload>
     </div>

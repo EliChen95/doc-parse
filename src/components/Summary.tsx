@@ -1,16 +1,39 @@
-import { useState, useEffect } from 'react';
-import { Spin, Typography } from 'antd';
-import { useParams } from 'react-router-dom';
-import { useAnalysisStore } from '../store/analysisStore';
-import '../styles/summary.css';
+import { useState, useEffect } from "react";
+import { Spin, Typography } from "antd";
+import "../styles/summary.css";
 
 const { Text } = Typography;
 
-const Summary: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // 获取任务 ID
-  const { getAnalysisResult } = useAnalysisStore();
-  const analysisResult = id ? getAnalysisResult(id) : undefined;
-  const [content, setContent] = useState('');
+interface AnalysisResult {
+  filename: string;
+  paper_guide: {
+    keywords: string[];
+    knowledge_points: { concept: string; description: string }[];
+    summary: string;
+    is_translation_from_english: boolean;
+  };
+  mind_map_data: {
+    topic: string;
+    content?: string | null;
+    children: any[];
+  };
+  related_literature_queries: {
+    authors: string[];
+    topics: string[];
+  };
+  references?: string[];
+  graph_data?: {
+    nodes: { id: string; label: string; type: string; details: any }[];
+    edges: { source: string; target: string; label: string }[];
+  };
+}
+
+interface SummaryProps {
+  analysisResult: AnalysisResult;
+}
+
+const Summary: React.FC<SummaryProps> = ({ analysisResult }) => {
+  const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
 
@@ -20,20 +43,29 @@ const Summary: React.FC = () => {
     }
 
     const { keywords, knowledge_points, summary } = analysisResult.paper_guide;
+    const { references } = analysisResult;
 
     const safeKeywords = Array.isArray(keywords) ? keywords : [];
-    const safeKnowledgePoints = Array.isArray(knowledge_points) ? knowledge_points : [];
-    const safeSummary = summary || '无摘要内容';
+    const safeKnowledgePoints = Array.isArray(knowledge_points)
+      ? knowledge_points
+      : [];
+    const safeSummary = summary || "无摘要内容";
+    const safeReferences = Array.isArray(references) ? references : [];
 
     let html = `
       <h2 class="summary-title">论文导读</h2>
       <h3 class="summary-subtitle">摘要</h3>
-      <p class="summary-paragraph">${safeSummary.split('\n').map(t => `<p>${t}</p>`).join('')}</p>
+      <p class="summary-paragraph">${safeSummary
+        .split("\n")
+        .map((t) => `<p>${t}</p>`)
+        .join("")}</p>
       <h3 class="summary-subtitle">关键词</h3>
       <ul class="summary-list">
         ${
           safeKeywords.length > 0
-            ? safeKeywords.map(kw => `<li class="summary-list-item">${kw}</li>`).join('')
+            ? safeKeywords
+                .map((kw) => `<li class="summary-list-item">${kw}</li>`)
+                .join("")
             : '<li class="summary-list-item">无关键词</li>'
         }
       </ul>
@@ -43,14 +75,26 @@ const Summary: React.FC = () => {
           safeKnowledgePoints.length > 0
             ? safeKnowledgePoints
                 .map(
-                  kp => `
+                  (kp) => `
               <li class="summary-list-item">
-                <strong>${kp.concept || '未知概念'}</strong>: ${kp.description || '无描述'}
+                <strong>${kp.concept || "未知概念"}</strong>: ${
+                    kp.description || "无描述"
+                  }
               </li>
             `
                 )
-                .join('')
+                .join("")
             : '<li class="summary-list-item">无知识点</li>'
+        }
+      </ul>
+      <h3 class="summary-subtitle">参考文献</h3>
+      <ul class="summary-list">
+        ${
+          safeReferences.length > 0
+            ? safeReferences
+                .map((ref) => `<li class="summary-list-item">${ref}</li>`)
+                .join("")
+            : '<li class="summary-list-item">无参考文献</li>'
         }
       </ul>
     `;
@@ -58,7 +102,7 @@ const Summary: React.FC = () => {
   };
 
   const fullContent = generateContent();
-  const characters = fullContent.split('');
+  const characters = fullContent.split("");
 
   useEffect(() => {
     if (!fullContent) {
@@ -74,7 +118,9 @@ const Summary: React.FC = () => {
     let index = 0;
     const generationTimer = setInterval(() => {
       if (index < characters.length) {
-        setContent(prev => prev + (characters[index] ? characters[index] : ''));
+        setContent(
+          (prev) => prev + (characters[index] ? characters[index] : "")
+        );
         index++;
       } else {
         clearInterval(generationTimer);

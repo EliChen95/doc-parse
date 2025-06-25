@@ -5,15 +5,13 @@ import dagre from 'dagre';
 import html2canvas from 'html2canvas';
 import '@xyflow/react/dist/style.css';
 import '../styles/summary.css';
-import { useAnalysisStore } from '../store/analysisStore';
-import { useParams } from 'react-router-dom';
 
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
-  const nodeWidth = 100; 
-  const nodeHeight = 100;
+  const nodeWidth = 200; 
+  const nodeHeight = 200;
   dagreGraph.setGraph({
     rankdir: direction,
     nodesep: 20, 
@@ -46,18 +44,42 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   return { nodes: layoutedNodes, edges };
 };
 
-const MindMap: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // 获取任务 ID
-  const { getAnalysisResult } = useAnalysisStore();
-  const analysisResult = id ? getAnalysisResult(id) : undefined;
+interface AnalysisResult {
+  filename: string;
+  paper_guide: {
+    keywords: string[];
+    knowledge_points: { concept: string; description: string }[];
+    summary: string;
+    is_translation_from_english: boolean;
+  };
+  mind_map_data: {
+    topic: string;
+    content?: string | null;
+    children: any[];
+  };
+  related_literature_queries: {
+    authors: string[];
+    topics: string[];
+  };
+  references?: string[];
+  graph_data?: {
+    nodes: { id: string; label: string; type: string; details: any }[];
+    edges: { source: string; target: string; label: string }[];
+  };
+}
 
+interface MindMapProps {
+  analysisResult: AnalysisResult; // 新增：接收 props
+}
+
+const MindMap: React.FC<MindMapProps> = ({ analysisResult }) => {
   const generateNodesAndEdges = () => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     let nodeId = 0;
 
     if (!analysisResult?.mind_map_data?.topic) {
-      console.warn('No mind map data available for task ID:', id);
+      console.warn('No mind map data available');
       return { nodes: [], edges: [] };
     }
 
